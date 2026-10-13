@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Capstone: Churn and Risk Flags</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1c2033;--mute:#667;--line:#e3e6ef;--brand:#5b34d6;--brand-ink:#fff;
+--low:#1b7f4b;--low-bg:#e3f5ea;--mid:#9a6200;--mid-bg:#fff1d6;--high:#b3261e;--high-bg:#fde7e5;}
+@media (prefers-color-scheme:dark){:root{--bg:#12141c;--card:#1b1e2a;--ink:#eceef6;--mute:#9aa0b5;--line:#2c3040;--brand:#8c6cff;--brand-ink:#12141c;
+--low:#5fd391;--low-bg:#173326;--mid:#f1bd5a;--mid-bg:#3a2d12;--high:#ff8a80;--high-bg:#3d1b19;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--card);border-bottom:1px solid var(--line)}
+h1{font-size:18px;margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--ink);padding:8px 16px;font:inherit;cursor:pointer}
+.seg button.on{background:var(--brand);color:var(--brand-ink);font-weight:600}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 60px}
+.banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brand);border-radius:8px;padding:10px 14px;margin-bottom:16px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{font-size:15px;margin:0 0 10px}
+fieldset{border:0;padding:0;margin:0 0 14px}
+legend{font-weight:600;font-size:13px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.fields{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mute);gap:3px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:1px}
+.btn{background:var(--brand);color:var(--brand-ink);border:0;border-radius:9px;padding:10px 18px;font:inherit;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.score{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.big{font-size:44px;font-weight:700;line-height:1}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-weight:600;font-size:13px}
+.lv-Low,.lv-Lower{background:var(--low-bg);color:var(--low)}
+.lv-Medium,.lv-Moderate{background:var(--mid-bg);color:var(--mid)}
+.lv-High,.lv-Elevated{background:var(--high-bg);color:var(--high)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin:12px 0}
+.bar>i{display:block;height:100%;background:var(--brand)}
+.drivers{list-style:none;padding:0;margin:8px 0 0}
+.drivers li{display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:14px}
+.up{color:var(--high);font-weight:600}.down{color:var(--low);font-weight:600}
+.explain h3{font-size:14px;margin:14px 0 4px}.explain p{margin:4px 0}.explain ul{margin:4px 0;padding-left:20px}
+.src{font-size:12px;color:var(--mute)}
+.chat{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow:auto;margin-bottom:10px}
+.msg{padding:8px 11px;border-radius:10px;max-width:92%;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:var(--brand);color:var(--brand-ink)}
+.msg.bot{align-self:flex-start;background:var(--bg);border:1px solid var(--line)}
+.row{display:flex;gap:8px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi .v{font-size:28px;font-weight:700}.kpi .t{color:var(--mute);font-size:13px}
+.charts{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;margin-bottom:16px}
+@media (max-width:800px){.charts{grid-template-columns:1fr}}
+canvas{max-height:260px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+tr.click{cursor:pointer}tr.click:hover{background:var(--bg)}
+.err{color:var(--high);margin-top:8px}
+.hide{display:none}
+.empty{color:var(--mute);padding:30px 0;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>AI Capstone</h1>
+  <div class="seg" id="projSeg" role="tablist" aria-label="Project">
+    <button data-p="banking" class="on">Banking</button>
+    <button data-p="healthcare">Healthcare</button>
+  </div>
+  <div class="seg" id="viewSeg" role="tablist" aria-label="View">
+    <button data-v="predict" class="on">New case</button>
+    <button data-v="dash">Dashboard</button>
+  </div>
+</header>
+<main>
+  <div class="banner" id="banner"></div>
+  <div id="vPredict" class="grid">
+    <form class="card" id="form"><h2 id="formTitle">Enter details</h2><div id="fields"></div>
+      <button class="btn" id="go" type="submit">Predict and explain</button>
+      <div class="err" id="err" role="alert"></div>
+    </form>
+    <div>
+      <div class="card" id="result"><div class="empty">Fill in the form and run a prediction. The result, explanation and chat appear here.</div></div>
+      <div class="card hide" id="chatCard" style="margin-top:18px"><h2>Ask about this result</h2>
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <form class="row" id="chatForm"><input id="chatIn" placeholder="e.g. Which factor mattered most?" aria-label="Question" autocomplete="off"><button class="btn" type="submit">Send</button></form>
+      </div>
+    </div>
+  </div>
+  <div id="vDash" class="hide">
+    <div class="kpis" id="kpis"></div>
+    <div class="charts"><div class="card"><h2>Risk level mix</h2><canvas id="c1"></canvas></div>
+      <div class="card"><h2>Risk score of recent cases</h2><canvas id="c2"></canvas></div></div>
+    <div class="card"><h2>History (click a row to reopen it)</h2><div id="hist"></div></div>
+  </div>
+</main>
+<script>
+const S={project:'banking',schema:null,caseId:null,history:[],charts:[]};
+const $=id=>document.getElementById(id);
+async function api(u,o){const r=await fetch(u,o);const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Request failed');return j;}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function md(t){ // tiny markdown: headings, bullets, bold, italics
+  const out=[];let list=false;
+  for(let line of esc(t).split('\n')){
+    line=line.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(^|\s)_(.+?)_(?=\s|$|[.,])/g,'$1<i>$2</i>');
+    if(/^### /.test(line)){if(list){out.push('</ul>');list=false}out.push('<h3>'+line.slice(4)+'</h3>')}
+    else if(/^\s*[-*] /.test(line)){if(!list){out.push('<ul>');list=true}out.push('<li>'+line.replace(/^\s*[-*] /,'')+'</li>')}
+    else{if(list){out.push('</ul>');list=false}if(line.trim())out.push('<p>'+line+'</p>')}
+  }
+  if(list)out.push('</ul>');return out.join('');
+}
+async function loadSchema(){
+  S.schema=await api('/api/schema/'+S.project);
+  $('banner').textContent=S.schema.banner;
+  $('formTitle').textContent=S.schema.title+': enter '+S.schema.entity+' details';
+  const groups={};S.schema.fields.forEach(f=>(groups[f.group]=groups[f.group]||[]).push(f));
+  $('fields').innerHTML=Object.entries(groups).map(([g,fs])=>`<fieldset><legend>${esc(g)}</legend><div class="fields">`+fs.map(f=>{
+    const id='f_'+f.key.replace(/\W/g,'_');
+    const ctl=f.kind==='select'
+      ?`<select id="${id}" data-k="${esc(f.key)}">`+f.options.map(o=>`<option value="${o[0]}" ${o[0]==f.default?'selected':''}>${esc(o[1])}</option>`).join('')+'</select>'
+      :`<input id="${id}" data-k="${esc(f.key)}" type="number" min="${f.min}" max="${f.max}" step="any" value="${f.default}" required>`;
+    return `<label for="${id}">${esc(f.label)}${ctl}</label>`}).join('')+'</div></fieldset>').join('');
+  resetResult();
+}
+function resetResult(){S.caseId=null;S.history=[];$('result').innerHTML='<div class="empty">Fill in the form and run a prediction. The result, explanation and chat appear here.</div>';$('chatCard').classList.add('hide');$('chat').innerHTML='';$('err').textContent=''}
+function showCase(c){
+  S.caseId=c.id;S.history=[];
+  const s=S.schema,pct=Math.round(c.score*100);
+  $('result').innerHTML=`<div class="score"><div><div class="src">Risk score</div><div class="big">${pct}<span style="font-size:18px"> / 100</span></div></div>
+    <div><span class="badge lv-${c.level}">${esc(c.level)} risk</span><div style="margin-top:6px"><b>${esc(c.flagged?s.flag_true:s.flag_false)}</b></div></div></div>
+    <div class="bar" role="img" aria-label="Risk score ${pct} out of 100"><i style="width:${pct}%"></i></div>
+    <h2>Main factors from the model</h2>
+    <ul class="drivers">${c.drivers.map(d=>`<li><span>${esc(d.feature)}: ${esc(d.value)}</span><span class="${d.direction==='raises'?'up':'down'}">${d.direction==='raises'?'raises score':'lowers score'}</span></li>`).join('')||'<li>Not available</li>'}</ul>
+    <div class="explain">${md(c.explanation)}</div>
+    <div class="src">Explanation source: ${c.source==='gemini'?'Gemini':'built-in template (Gemini not connected)'} · case #${c.id}</div>`;
+  $('chatCard').classList.remove('hide');
+  $('chat').innerHTML='';
+  addMsg('bot','Ask me anything about this result: which factors mattered, what a term means, or how the score is read.');
+}
+function addMsg(r,t){const d=document.createElement('div');d.className='msg '+r;d.textContent=t;$('chat').appendChild(d);$('chat').scrollTop=1e9}
+$('form').addEventListener('submit',async e=>{
+  e.preventDefault();const b=$('go');b.disabled=true;b.textContent='Working...';$('err').textContent='';
+  try{
+    const data={};document.querySelectorAll('#fields [data-k]').forEach(el=>data[el.dataset.k]=el.value);
+    showCase(await api('/api/predict/'+S.project,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}));
+  }catch(x){$('err').textContent=x.message}
+  b.disabled=false;b.textContent='Predict and explain';
+});
+$('chatForm').addEventListener('submit',async e=>{
+  e.preventDefault();const q=$('chatIn').value.trim();if(!q||!S.caseId)return;
+  $('chatIn').value='';addMsg('user',q);const hist=S.history.slice();S.history.push({role:'user',text:q});
+  try{const r=await api('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:S.caseId,message:q,history:hist})});
+    addMsg('bot',r.reply);S.history.push({role:'bot',text:r.reply});}
+  catch(x){addMsg('bot','Error: '+x.message)}
+});
+async function loadDash(){
+  const d=await api('/api/dashboard/'+S.project);S.charts.forEach(c=>c.destroy());S.charts=[];
+  $('kpis').innerHTML=[['Cases',d.kpis.total],['Flagged',d.kpis.flagged],['Flag rate',d.kpis.flag_rate+'%'],['Average score',d.kpis.avg_score]]
+    .map(([t,v])=>`<div class="card kpi"><div class="v">${v}</div><div class="t">${t}</div></div>`).join('');
+  const css=getComputedStyle(document.documentElement),ink=css.getPropertyValue('--ink').trim(),line=css.getPropertyValue('--line').trim(),brand=css.getPropertyValue('--brand').trim();
+  const colors=[css.getPropertyValue('--low').trim(),css.getPropertyValue('--mid').trim(),css.getPropertyValue('--high').trim()];
+  Chart.defaults.color=ink;
+  S.charts.push(new Chart($('c1'),{type:'bar',data:{labels:Object.keys(d.level_counts),datasets:[{data:Object.values(d.level_counts),backgroundColor:colors}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0},grid:{color:line}},x:{grid:{display:false}}}}}));
+  S.charts.push(new Chart($('c2'),{type:'line',data:{labels:d.timeline.map(t=>'#'+t.id),datasets:[{data:d.timeline.map(t=>t.score),borderColor:brand,backgroundColor:brand,tension:.25}]},options:{plugins:{legend:{display:false}},scales:{y:{min:0,max:1,grid:{color:line}},x:{grid:{display:false}}}}}));
+  $('hist').innerHTML=d.history.length?`<table><thead><tr><th>#</th><th>Time</th><th>Score</th><th>Level</th><th>Result</th></tr></thead><tbody>`+
+    d.history.map(h=>`<tr class="click" tabindex="0" data-id="${h.id}"><td>${h.id}</td><td>${esc(h.created)}</td><td>${h.score}</td><td><span class="badge lv-${h.level}">${esc(h.level)}</span></td><td>${h.flagged?'Flagged':'Not flagged'}</td></tr>`).join('')+'</tbody></table>'
+    :'<div class="empty">No cases yet. Run a prediction first.</div>';
+  document.querySelectorAll('tr.click').forEach(tr=>{const open=async()=>{showCase(await api('/api/case/'+tr.dataset.id));setView('predict')};tr.onclick=open;tr.onkeydown=e=>{if(e.key==='Enter')open()}});
+}
+function setView(v){document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('vPredict').classList.toggle('hide',v!=='predict');$('vDash').classList.toggle('hide',v!=='dash');if(v==='dash')loadDash()}
+$('viewSeg').addEventListener('click',e=>{if(e.target.dataset.v)setView(e.target.dataset.v)});
+$('projSeg').addEventListener('click',async e=>{if(!e.target.dataset.p)return;S.project=e.target.dataset.p;
+  document.querySelectorAll('#projSeg button').forEach(b=>b.classList.toggle('on',b===e.target));
+  await loadSchema();if(!$('vDash').classList.contains('hide'))loadDash()});
+loadSchema();
+</script>
+</body>
+</html>

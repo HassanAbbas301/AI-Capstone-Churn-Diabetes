@@ -1,0 +1,8 @@
+.env
+history.db
+__pycache__/
+*.pyc
+venv/
+.venv/
+.ipynb_checkpoints/
+data/
