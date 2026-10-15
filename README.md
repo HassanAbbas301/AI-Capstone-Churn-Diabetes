@@ -2,6 +2,10 @@
 
 Two projects in one Flask web app. Each has a trained ML model and a Gemini-powered Gen AI layer (plain-language explanation of each prediction, plus a chatbot and a dashboard).
 
+This submission is one combined application with a Banking page and a Healthcare page; all deliverables are shared between the two projects.
+
+**Write-up:** see [WRITEUP.md](WRITEUP.md) for the answers to the five capstone questions for both projects.
+
 | | Project 1: Banking | Project 2: Healthcare |
 |---|---|---|
 | Task | Customer churn prediction | Diabetes risk flag |
