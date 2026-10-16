@@ -31,7 +31,7 @@ DB_PATH = os.getenv("DB_PATH", str(BASE / "history.db"))
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 
 app = Flask(__name__)
-
+app.json.sort_keys = False
 
 def norm(name: str) -> str:
     """Collapse the double spaces that exist in the Iranian churn column names."""
@@ -282,8 +282,8 @@ You explain, summarise and inform. HARD RULES (a breach is a failure):
 2. NEVER tell anyone what to do medically: no treatment, no medication or dose, no diet, exercise or testing instructions.
    Do not use 'you should', 'you must', 'you need to', 'I recommend', 'I advise' or similar.
 3. Do not name any medication.
-4. Sound like a nurse describing a result to a colleague: calm, plain, neutral. You are not a doctor and never replace one.
-5. Say the number is a risk score, not a literal probability, and that a clinician interprets it.
+4. Sound like a nurse describing a result to a colleague: calm, plain, neutral, warm. Do not say "I am not a doctor"; a disclaimer is added separately.
+5. Say in plain words that the number is a risk score, not the chance that someone has a condition, and that a clinician interprets it.
 Base everything on the MODEL OUTPUT, TOP FACTORS and INPUTS. The wording must change with the result
 (flagged vs not flagged, and which factors mattered). Write concise markdown with exactly these sections:
 ### What the result shows
@@ -372,10 +372,10 @@ def chat_reply(project, case, message, history):
     system = (HEALTH_SYSTEM if cfg["healthcare"] else BANK_SYSTEM).split("Write concise markdown")[0]
     system += ("\nYou are now answering follow-up questions about THIS case only. Keep answers under 120 words, "
                "in plain language, grounded in the case data. If asked something unrelated to the case, say so briefly.")
+    system += "\nUse plain text only. No markdown, no asterisks."
     if cfg["healthcare"]:
-        
-     system += "\nIf asked for a diagnosis, treatment, medication or what to do medically, decline politely and point to a doctor."
-     system += "\nWhen you decline, add one short sentence offering what you can explain about the result."
+        system += "\nIf asked for a diagnosis, treatment, medication or what to do medically, decline politely and point to a doctor."
+        system += "\nWhen you decline, add one short sentence offering what you can explain about the result."
     convo = "\n".join(f"{'User' if h.get('role') == 'user' else 'Assistant'}: {h.get('text', '')}" for h in history[-8:])
     prompt = f"{ctx}\n\nPREVIOUS EXPLANATION:\n{case['explanation']}\n\nCONVERSATION:\n{convo}\nUser: {message}\nAssistant:"
     out = llm(system, prompt, temperature=0.3)
@@ -387,9 +387,7 @@ def chat_reply(project, case, message, history):
         return base + " (Gemini is not connected, so this is a basic answer.)"
     if cfg["healthcare"] and unsafe(out):
         return CHAT_REFUSAL
-    return out
-
-
+    return out.replace("**", "")
 # --------------------------------------------------------------------------
 # Routes
 # --------------------------------------------------------------------------
