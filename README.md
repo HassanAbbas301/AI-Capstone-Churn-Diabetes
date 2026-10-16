@@ -4,8 +4,8 @@ Two projects in one Flask web app. Each has a trained ML model and a Gemini-powe
 
 This submission is one combined application with a Banking page and a Healthcare page; all deliverables are shared between the two projects.
 
-**Write-up:** see [WRITEUP.md](WRITEUP.md) for the answers to the five capstone questions for both projects.
-
+**Write-up:** see [WRITEUP.md](WRITEUP.md) for the answers to the five capstone questions for both projects.                                                                                           
+**Demo video:** see [Demo_Video.mp4](Demo_Video.mp4), a screen recording of both projects (input, prediction, explanation, chat and            dashboard).                                                                                                                                                                            
 | | Project 1: Banking | Project 2: Healthcare |
 |---|---|---|
 | Task | Customer churn prediction | Diabetes risk flag |
